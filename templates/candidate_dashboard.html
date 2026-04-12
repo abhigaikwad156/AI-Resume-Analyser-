@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Candidate Dashboard</title>
+</head>
+<body>
+    <h2>Candidate Dashboard</h2>
+    <p>Welcome {{ candidate }} | <a href="{{ url_for('logout') }}">Logout</a></p>
+
+    {% if message %}
+        <p><strong>{{ message }}</strong></p>
+    {% endif %}
+
+    <h3>Available Jobs</h3>
+    {% if jobs %}
+        <form method="POST" action="{{ url_for('candidate_apply') }}" enctype="multipart/form-data">
+            <label>Select job:</label><br>
+            <select name="job_id" required>
+                <option value="">Choose a job</option>
+                {% for job in jobs %}
+                    <option value="{{ job.id }}">{{ job.job_title }} — {{ job.employer_name }}</option>
+                {% endfor %}
+            </select><br><br>
+            <label>Upload Resume:</label><br>
+            <input type="file" name="resume" accept=".pdf,.docx" required><br><br>
+            <button type="submit">Apply</button>
+        </form>
+    {% else %}
+        <p>No jobs are available right now.</p>
+    {% endif %}
+
+    <h3>Your Applications</h3>
+    {% if applications %}
+        <table border="1" cellpadding="6" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Job</th>
+                    <th>Score</th>
+                    <th>Missing Skills</th>
+                    <th>Submitted At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in applications %}
+                    <tr>
+                        <td>{{ app.job_title }}</td>
+                        <td>{{ app.score }}%</td>
+                        <td>{{ app.missing_skills or 'None' }}</td>
+                        <td>{{ app.created_at }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You have not applied to any jobs yet.</p>
+    {% endif %}
+</body>
+</html>
