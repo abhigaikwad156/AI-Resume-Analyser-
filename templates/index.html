@@ -5,10 +5,10 @@
 </head>
 <body>
     <h2>AI Resume Analyzer</h2>
-    <p>Choose your role to continue:</p>
+    <p>Are you an employer or a candidate?</p>
     <ul>
-        <li><a href="{{ url_for('employer_login') }}">Employer login</a></li>
-        <li><a href="{{ url_for('candidate_login') }}">Candidate login</a></li>
+        <li><a href="{{ url_for('employer_auth') }}">Employer</a></li>
+        <li><a href="{{ url_for('candidate_auth') }}">Candidate</a></li>
     </ul>
 </body>
 </html>

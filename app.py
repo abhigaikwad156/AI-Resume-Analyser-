@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import pdfplumber
@@ -33,6 +34,10 @@ def init_db():
     db.applications.create_index([("candidate_name", 1)])
     db.applications.create_index([("employer_name", 1)])
     db.applications.create_index([("created_at", -1)])
+    db.employers.create_index([("username", 1)], unique=True)
+    db.employers.create_index([("created_at", -1)])
+    db.candidates.create_index([("username", 1)], unique=True)
+    db.candidates.create_index([("created_at", -1)])
 
 
 def normalize_docs(cursor):
@@ -102,26 +107,100 @@ def home():
     return render_template("index.html")
 
 
+@app.route("/employer/auth")
+def employer_auth():
+    return render_template("employer_auth.html")
+
+
+@app.route("/candidate/auth")
+def candidate_auth():
+    return render_template("candidate_auth.html")
+
+
 @app.route("/employer/login", methods=["GET", "POST"])
 def employer_login():
+    message = request.args.get("message")
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        if name:
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "")
+        if username and password:
+            user = db.employers.find_one({"username": username})
+            if user and check_password_hash(user.get("password_hash", ""), password):
+                session["role"] = "employer"
+                session["user"] = username
+                session["user_id"] = str(user["_id"])
+                return redirect(url_for("employer_dashboard"))
+        message = "Invalid username or password."
+    return render_template("employer_login.html", message=message)
+
+
+@app.route("/employer/register", methods=["GET", "POST"])
+def employer_register():
+    message = request.args.get("message")
+    if request.method == "POST":
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        if not username or not password:
+            message = "Username and password are required."
+        elif password != confirm_password:
+            message = "Passwords do not match."
+        elif db.employers.find_one({"username": username}):
+            message = "That username is already taken."
+        else:
+            result = db.employers.insert_one({
+                "username": username,
+                "password_hash": generate_password_hash(password),
+                "created_at": datetime.datetime.utcnow().isoformat()
+            })
             session["role"] = "employer"
-            session["user"] = name
+            session["user"] = username
+            session["user_id"] = str(result.inserted_id)
             return redirect(url_for("employer_dashboard"))
-    return render_template("employer_login.html")
+    return render_template("employer_register.html", message=message)
 
 
 @app.route("/candidate/login", methods=["GET", "POST"])
 def candidate_login():
+    message = request.args.get("message")
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        if name:
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "")
+        if username and password:
+            user = db.candidates.find_one({"username": username})
+            if user and check_password_hash(user.get("password_hash", ""), password):
+                session["role"] = "candidate"
+                session["user"] = username
+                session["user_id"] = str(user["_id"])
+                return redirect(url_for("candidate_dashboard"))
+        message = "Invalid username or password."
+    return render_template("candidate_login.html", message=message)
+
+
+@app.route("/candidate/register", methods=["GET", "POST"])
+def candidate_register():
+    message = request.args.get("message")
+    if request.method == "POST":
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        if not username or not password:
+            message = "Username and password are required."
+        elif password != confirm_password:
+            message = "Passwords do not match."
+        elif db.candidates.find_one({"username": username}):
+            message = "That username is already taken."
+        else:
+            result = db.candidates.insert_one({
+                "username": username,
+                "password_hash": generate_password_hash(password),
+                "created_at": datetime.datetime.utcnow().isoformat()
+            })
             session["role"] = "candidate"
-            session["user"] = name
+            session["user"] = username
+            session["user_id"] = str(result.inserted_id)
             return redirect(url_for("candidate_dashboard"))
-    return render_template("candidate_login.html")
+    return render_template("candidate_register.html", message=message)
 
 
 @app.route("/logout")

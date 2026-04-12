@@ -1,15 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Candidate Login</title>
+    <title>Candidate Sign In</title>
 </head>
 <body>
-    <h2>Candidate Login</h2>
+    <h2>Candidate Sign In</h2>
+    {% if message %}
+        <p><strong>{{ message }}</strong></p>
+    {% endif %}
     <form method="POST">
-        <label>Name:</label><br>
-        <input type="text" name="name" required><br><br>
-        <button type="submit">Continue</button>
+        <label>Username:</label><br>
+        <input type="text" name="username" required><br><br>
+        <label>Password:</label><br>
+        <input type="password" name="password" required><br><br>
+        <button type="submit">Sign In</button>
     </form>
+    <p><a href="{{ url_for('candidate_register') }}">Create a candidate account</a></p>
     <p><a href="{{ url_for('home') }}">Back to home</a></p>
 </body>
 </html>
