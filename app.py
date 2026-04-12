@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, session, g
+from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.utils import secure_filename
-import sqlite3
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 import pdfplumber
 import docx2txt
 import os
@@ -16,49 +17,30 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = "replace-this-with-a-secure-key"
 UPLOAD_FOLDER = "uploads"
-DATABASE = "jobs.db"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["MONGO_URI"] = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
+app.config["MONGO_DBNAME"] = os.environ.get("MONGO_DBNAME", "job_portal")
 
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-def get_db():
-    if "db" not in g:
-        g.db = sqlite3.connect(DATABASE)
-        g.db.row_factory = sqlite3.Row
-    return g.db
-
-
-@app.teardown_appcontext
-def close_db(exception=None):
-    db = g.pop("db", None)
-    if db is not None:
-        db.close()
+mongo_client = MongoClient(app.config["MONGO_URI"])
+db = mongo_client[app.config["MONGO_DBNAME"]]
 
 
 def init_db():
-    db = get_db()
-    db.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS jobs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            employer_name TEXT NOT NULL,
-            job_title TEXT NOT NULL,
-            job_desc TEXT NOT NULL,
-            created_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS applications (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            job_id INTEGER NOT NULL,
-            candidate_name TEXT NOT NULL,
-            resume_filename TEXT NOT NULL,
-            score REAL NOT NULL,
-            missing_skills TEXT,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY(job_id) REFERENCES jobs(id)
-        );
-        """
-    )
-    db.commit()
+    db.jobs.create_index([("employer_name", 1)])
+    db.jobs.create_index([("created_at", -1)])
+    db.applications.create_index([("candidate_name", 1)])
+    db.applications.create_index([("employer_name", 1)])
+    db.applications.create_index([("created_at", -1)])
+
+
+def normalize_docs(cursor):
+    docs = []
+    for doc in cursor:
+        doc["id"] = str(doc["_id"])
+        docs.append(doc)
+    return docs
 
 
 with app.app_context():
@@ -151,18 +133,9 @@ def logout():
 @app.route("/employer/dashboard")
 @login_required("employer")
 def employer_dashboard():
-    db = get_db()
     employer = session["user"]
-    jobs = db.execute(
-        "SELECT * FROM jobs WHERE employer_name = ? ORDER BY created_at DESC",
-        (employer,)
-    ).fetchall()
-    applications = db.execute(
-        "SELECT a.*, j.job_title FROM applications a "
-        "JOIN jobs j ON a.job_id = j.id WHERE j.employer_name = ? "
-        "ORDER BY a.created_at DESC",
-        (employer,)
-    ).fetchall()
+    jobs = normalize_docs(db.jobs.find({"employer_name": employer}).sort("created_at", -1))
+    applications = normalize_docs(db.applications.find({"employer_name": employer}).sort("created_at", -1))
     return render_template("employer_dashboard.html", employer=employer, jobs=jobs, applications=applications)
 
 
@@ -173,26 +146,20 @@ def create_job():
     job_title = request.form.get("job_title", "").strip()
     job_desc = request.form.get("job_desc", "").strip()
     if job_title and job_desc:
-        db = get_db()
-        db.execute(
-            "INSERT INTO jobs (employer_name, job_title, job_desc, created_at) VALUES (?, ?, ?, ?)",
-            (employer, job_title, job_desc, datetime.datetime.utcnow().isoformat())
-        )
-        db.commit()
+        db.jobs.insert_one({
+            "employer_name": employer,
+            "job_title": job_title,
+            "job_desc": job_desc,
+            "created_at": datetime.datetime.utcnow().isoformat()
+        })
     return redirect(url_for("employer_dashboard"))
 
 
 @app.route("/candidate/dashboard")
 @login_required("candidate")
 def candidate_dashboard():
-    db = get_db()
-    jobs = db.execute("SELECT * FROM jobs ORDER BY created_at DESC").fetchall()
-    applications = db.execute(
-        "SELECT a.*, j.job_title FROM applications a "
-        "JOIN jobs j ON a.job_id = j.id WHERE a.candidate_name = ? "
-        "ORDER BY a.created_at DESC",
-        (session["user"],)
-    ).fetchall()
+    jobs = normalize_docs(db.jobs.find().sort("created_at", -1))
+    applications = normalize_docs(db.applications.find({"candidate_name": session["user"]}).sort("created_at", -1))
     message = request.args.get("message")
     return render_template("candidate_dashboard.html", candidate=session["user"], jobs=jobs, applications=applications, message=message)
 
@@ -223,20 +190,28 @@ def candidate_apply():
     else:
         return redirect(url_for("candidate_dashboard", message="Only PDF and DOCX resumes are supported."))
 
-    db = get_db()
-    job = db.execute("SELECT job_desc FROM jobs WHERE id = ?", (job_id,)).fetchone()
-    if not job:
+    try:
+        job_obj = db.jobs.find_one({"_id": ObjectId(job_id)})
+    except Exception:
+        job_obj = None
+
+    if not job_obj:
         return redirect(url_for("candidate_dashboard", message="Selected job not found."))
 
-    score = get_similarity(resume_text, job["job_desc"])
-    missing_skills = list(set(extract_skills(job["job_desc"])) - set(extract_skills(resume_text)))
+    score = get_similarity(resume_text, job_obj["job_desc"])
+    missing_skills = list(set(extract_skills(job_obj["job_desc"])) - set(extract_skills(resume_text)))
     missing_text = ", ".join(missing_skills)
 
-    db.execute(
-        "INSERT INTO applications (job_id, candidate_name, resume_filename, score, missing_skills, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-        (job_id, candidate, filename, score, missing_text, datetime.datetime.utcnow().isoformat())
-    )
-    db.commit()
+    db.applications.insert_one({
+        "job_id": job_obj["_id"],
+        "job_title": job_obj["job_title"],
+        "employer_name": job_obj["employer_name"],
+        "candidate_name": candidate,
+        "resume_filename": filename,
+        "score": score,
+        "missing_skills": missing_text,
+        "created_at": datetime.datetime.utcnow().isoformat()
+    })
 
     return redirect(url_for("candidate_dashboard", message="Resume submitted successfully."))
 
