@@ -1,58 +1,246 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Candidate Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidate Dashboard - AI Resume Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .dashboard-header {
+            background: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .welcome-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+        .card-custom {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .card-custom:hover {
+            transform: translateY(-2px);
+        }
+        .job-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #667eea;
+        }
+        .btn-primary-custom {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 600;
+        }
+        .btn-primary-custom:hover {
+            background: linear-gradient(45deg, #764ba2, #667eea);
+            transform: scale(1.05);
+        }
+        .table-custom {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .table-custom thead {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        .score-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .score-high { background-color: #28a745; color: white; }
+        .score-medium { background-color: #ffc107; color: black; }
+        .score-low { background-color: #dc3545; color: white; }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
 </head>
 <body>
-    <h2>Candidate Dashboard</h2>
-    <p>Welcome {{ candidate }} | <a href="{{ url_for('logout') }}">Logout</a></p>
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand text-white fw-bold" href="#">
+                <i class="fas fa-rocket me-2"></i>AI Resume Analyzer
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text text-white me-3">
+                    Welcome, <strong>{{ candidate }}</strong>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                </a>
+            </div>
+        </div>
+    </nav>
 
-    {% if message %}
-        <p><strong>{{ message }}</strong></p>
-    {% endif %}
+    <div class="container-fluid">
+        <div class="welcome-section">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2"><i class="fas fa-tachometer-alt me-3"></i>Candidate Dashboard</h1>
+                    <p class="mb-0">Manage your job applications and discover new opportunities with AI-powered matching.</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <i class="fas fa-user-circle" style="font-size: 4rem; opacity: 0.8;"></i>
+                </div>
+            </div>
+        </div>
 
-    <h3>Available Jobs</h3>
-    {% if jobs %}
-        <form method="POST" action="{{ url_for('candidate_apply') }}" enctype="multipart/form-data">
-            <label>Select job:</label><br>
-            <select name="job_id" required>
-                <option value="">Choose a job</option>
-                {% for job in jobs %}
-                    <option value="{{ job.id }}">{{ job.job_title }} — {{ job.employer_name }}</option>
-                {% endfor %}
-            </select><br><br>
-            <label>Upload Resume:</label><br>
-            <input type="file" name="resume" accept=".pdf,.docx" required><br><br>
-            <button type="submit">Apply</button>
-        </form>
-    {% else %}
-        <p>No jobs are available right now.</p>
-    {% endif %}
+        {% if message %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i><strong>{{ message }}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
 
-    <h3>Your Applications</h3>
-    {% if applications %}
-        <table border="1" cellpadding="6" cellspacing="0">
-            <thead>
-                <tr>
-                    <th>Job</th>
-                    <th>Score</th>
-                    <th>Missing Skills</th>
-                    <th>Submitted At</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for app in applications %}
-                    <tr>
-                        <td>{{ app.job_title }}</td>
-                        <td>{{ app.score }}%</td>
-                        <td>{{ app.missing_skills or 'None' }}</td>
-                        <td>{{ app.created_at }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>You have not applied to any jobs yet.</p>
-    {% endif %}
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card card-custom">
+                    <div class="card-header bg-white border-0">
+                        <h4 class="mb-0"><i class="fas fa-briefcase me-2 text-primary"></i>Available Jobs</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if jobs %}
+                            <form method="POST" action="{{ url_for('candidate_apply') }}" enctype="multipart/form-data">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="jobSelect" class="form-label fw-bold">Select a Job</label>
+                                        <select class="form-select" id="jobSelect" name="job_id" required>
+                                            <option value="">Choose a job...</option>
+                                            {% for job in jobs %}
+                                                <option value="{{ job.id }}">{{ job.job_title }} — {{ job.employer_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="resumeUpload" class="form-label fw-bold">Upload Your Resume</label>
+                                        <input type="file" class="form-control" id="resumeUpload" name="resume" accept=".pdf,.docx,.txt" required>
+                                        <div class="form-text">Supported formats: PDF, DOCX, TXT</div>
+                                    </div>
+                                </div>
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-primary-custom">
+                                        <i class="fas fa-paper-plane me-2"></i>Apply Now
+                                    </button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-briefcase"></i>
+                                <h5>No Jobs Available</h5>
+                                <p>Check back later for new job opportunities.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card card-custom">
+                    <div class="card-header bg-white border-0">
+                        <h4 class="mb-0"><i class="fas fa-chart-line me-2 text-success"></i>Quick Stats</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="p-3">
+                                    <i class="fas fa-briefcase fa-2x text-primary mb-2"></i>
+                                    <h3 class="mb-1">{{ jobs|length if jobs else 0 }}</h3>
+                                    <small class="text-muted">Jobs Available</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3">
+                                    <i class="fas fa-file-alt fa-2x text-info mb-2"></i>
+                                    <h3 class="mb-1">{{ applications|length if applications else 0 }}</h3>
+                                    <small class="text-muted">Applications</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-custom mt-4">
+            <div class="card-header bg-white border-0">
+                <h4 class="mb-0"><i class="fas fa-history me-2 text-warning"></i>Your Applications</h4>
+            </div>
+            <div class="card-body">
+                {% if applications %}
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-building me-1"></i>Job Title</th>
+                                    <th><i class="fas fa-percentage me-1"></i>Match Score</th>
+                                    <th><i class="fas fa-tools me-1"></i>Missing Skills</th>
+                                    <th><i class="fas fa-calendar me-1"></i>Applied Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in applications %}
+                                    <tr>
+                                        <td class="fw-bold">{{ app.job_title }}</td>
+                                        <td>
+                                            <span class="score-badge {% if app.score >= 80 %}score-high{% elif app.score >= 60 %}score-medium{% else %}score-low{% endif %}">
+                                                {{ app.score }}%
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if app.missing_skills %}
+                                                <small class="text-muted">{{ app.missing_skills }}</small>
+                                            {% else %}
+                                                <span class="badge bg-success">Complete Match</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ app.created_at }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <h5>No Applications Yet</h5>
+                        <p>Start applying to jobs to see your application history here.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
