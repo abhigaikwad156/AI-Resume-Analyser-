@@ -6,6 +6,7 @@
     <title>Employer Dashboard - AI Resume Analyzer</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='dark-mode.css') }}" rel="stylesheet">
     <style>
         body {
             background-color: #f8f9fa;
@@ -113,6 +114,15 @@
             border-color: #667eea;
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
         }
+        .form-label-small {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        .filter-section {
+            border: 1px solid #dee2e6;
+        }
     </style>
 </head>
 <body>
@@ -125,6 +135,9 @@
                 <span class="navbar-text text-white me-3">
                     Welcome, <strong>{{ employer }}</strong>
                 </span>
+                <button class="dark-mode-toggle me-2" id="darkModeBtn">
+                    <i class="fas fa-moon me-2"></i><span id="themeText">Dark</span>
+                </button>
                 <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
                     <i class="fas fa-sign-out-alt me-1"></i>Logout
                 </a>
@@ -145,6 +158,13 @@
             </div>
         </div>
 
+        {% if message %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i><strong>{{ message }}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
         <div class="row">
             <div class="col-lg-6">
                 <div class="card card-custom">
@@ -152,21 +172,41 @@
                         <h4 class="mb-0"><i class="fas fa-plus-circle me-2 text-success"></i>Post a New Job</h4>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="{{ url_for('create_job') }}">
-                            <div class="mb-3">
-                                <label for="jobTitle" class="form-label fw-bold">Job Title</label>
-                                <input type="text" class="form-control" id="jobTitle" name="job_title" required
-                                       placeholder="e.g., Senior Python Developer">
+                        <form method="POST" action="{{ url_for('create_job') }}" id="jobForm">
+                            <div id="jobsContainer">
+                                <!-- First job entry (always visible) -->
+                                <div class="job-entry mb-4" data-job-index="0">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0"><i class="fas fa-briefcase me-2"></i>Job #1</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-job" style="display:none;">
+                                            <i class="fas fa-trash me-1"></i>Remove
+                                        </button>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Job Title</label>
+                                        <input type="text" class="form-control job-title" name="job_titles" required
+                                               placeholder="e.g., Senior Python Developer">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Job Description</label>
+                                        <textarea class="form-control job-desc" name="job_descs" rows="5" required
+                                                  placeholder="Describe the role, requirements, and responsibilities..."></textarea>
+                                        <div class="form-text">Include key skills, experience requirements, and job details.</div>
+                                    </div>
+                                    <hr class="job-divider">
+                                </div>
                             </div>
+
                             <div class="mb-3">
-                                <label for="jobDesc" class="form-label fw-bold">Job Description</label>
-                                <textarea class="form-control" id="jobDesc" name="job_desc" rows="6" required
-                                          placeholder="Describe the role, requirements, and responsibilities..."></textarea>
-                                <div class="form-text">Include key skills, experience requirements, and job details for better AI matching.</div>
+                                <button type="button" id="addJobBtn" class="btn btn-outline-primary me-2">
+                                    <i class="fas fa-plus me-2"></i>Add Another Job
+                                </button>
+                                <small class="text-muted">Add up to 5 jobs at once</small>
                             </div>
+
                             <div class="text-center">
                                 <button type="submit" class="btn btn-success-custom">
-                                    <i class="fas fa-paper-plane me-2"></i>Post Job
+                                    <i class="fas fa-paper-plane me-2"></i>Post Jobs
                                 </button>
                             </div>
                         </form>
@@ -256,24 +296,57 @@
 
         <div class="card card-custom mt-4">
             <div class="card-header bg-white border-0">
-                <h4 class="mb-0"><i class="fas fa-inbox me-2 text-warning"></i>Applications Received</h4>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0"><i class="fas fa-inbox me-2 text-warning"></i>Applications Received</h4>
+                </div>
+                
+                <!-- Filter by Match Score -->
+                <div class="filter-section" style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin-top: 1rem;">
+                    <h6 class="mb-3"><i class="fas fa-filter me-2"></i>Filter by Match Score</h6>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <label class="form-label form-label-small">Score Range</label>
+                            <select id="scoreFilter" class="form-select form-select-sm">
+                                <option value="">All Scores</option>
+                                <option value="high">High (80-100%)</option>
+                                <option value="medium">Medium (60-79%)</option>
+                                <option value="low">Low (0-59%)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label form-label-small">Minimum Score</label>
+                            <input type="number" id="minScore" class="form-control form-control-sm" min="0" max="100" placeholder="Min: 0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label form-label-small">Maximum Score</label>
+                            <input type="number" id="maxScore" class="form-control form-control-sm" min="0" max="100" placeholder="Max: 100">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button id="resetFilter" class="btn btn-sm btn-outline-secondary w-100">
+                                <i class="fas fa-redo me-1"></i>Reset
+                            </button>
+                        </div>
+                    </div>
+                    <div id="filterStats" class="mt-2" style="font-size: 0.9rem; color: #6c757d;"></div>
+                </div>
             </div>
             <div class="card-body">
                 {% if applications %}
                     <div class="table-responsive">
-                        <table class="table table-custom table-hover mb-0">
+                        <table class="table table-custom table-hover mb-0" id="applicationsTable">
                             <thead>
                                 <tr>
                                     <th><i class="fas fa-user me-1"></i>Candidate</th>
-                                    <th><i class="fas fa-building me-1"></i>Job Applied</th>
+                                    <th><i class="fas fa-briefcase me-1"></i>Job Applied</th>
                                     <th><i class="fas fa-percentage me-1"></i>Match Score</th>
-                                    <th><i class="fas fa-tools me-1"></i>Missing Skills</th>
+                                    <th><i class="fas fa-file me-1"></i>Resume</th>
                                     <th><i class="fas fa-calendar me-1"></i>Applied Date</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="applicationsTableBody">
                                 {% for app in applications %}
-                                    <tr>
+                                    <tr class="application-row" data-score="{{ app.score }}">
                                         <td class="fw-bold">{{ app.candidate_name }}</td>
                                         <td>{{ app.job_title }}</td>
                                         <td>
@@ -282,17 +355,29 @@
                                             </span>
                                         </td>
                                         <td>
-                                            {% if app.missing_skills %}
-                                                <small class="text-muted">{{ app.missing_skills }}</small>
-                                            {% else %}
-                                                <span class="badge bg-success">Perfect Match</span>
-                                            {% endif %}
+                                            <small class="text-muted">
+                                                <i class="fas fa-file-pdf me-1"></i>{{ app.resume_filename }}
+                                            </small>
                                         </td>
-                                        <td>{{ app.created_at }}</td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ app.created_at[:10] if app.created_at else 'N/A' }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('download_resume', filename=app.resume_filename) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download me-1"></i>Download
+                                            </a>
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                    <div id="noResults" class="empty-state" style="display: none;">
+                        <i class="fas fa-search"></i>
+                        <h5>No Matching Applications</h5>
+                        <p>No applications match your selected filters.</p>
                     </div>
                 {% else %}
                     <div class="empty-state">
@@ -306,5 +391,179 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='dark-mode.js') }}"></script>
+    <script>
+        (function(){
+            const jobForm = document.getElementById('jobForm');
+            const addJobBtn = document.getElementById('addJobBtn');
+            const jobsContainer = document.getElementById('jobsContainer');
+            let jobCount = 1;
+            const maxJobs = 5;
+            
+            function updateRemoveButtons(){
+                const entries = jobsContainer.querySelectorAll('.job-entry');
+                entries.forEach((entry, idx) => {
+                    const removeBtn = entry.querySelector('.remove-job');
+                    if(entries.length > 1){
+                        removeBtn.style.display = 'block';
+                    } else {
+                        removeBtn.style.display = 'none';
+                    }
+                });
+            }
+            
+            function addJobEntry(){
+                if(jobCount >= maxJobs){
+                    alert('Maximum ' + maxJobs + ' jobs can be added at once.');
+                    return;
+                }
+                
+                jobCount++;
+                const newEntry = document.createElement('div');
+                newEntry.className = 'job-entry mb-4';
+                newEntry.dataset.jobIndex = jobCount - 1;
+                newEntry.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0"><i class="fas fa-briefcase me-2"></i>Job #${jobCount}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-job">
+                            <i class="fas fa-trash me-1"></i>Remove
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Job Title</label>
+                        <input type="text" class="form-control job-title" name="job_titles" required
+                               placeholder="e.g., Senior Python Developer">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Job Description</label>
+                        <textarea class="form-control job-desc" name="job_descs" rows="5" required
+                                  placeholder="Describe the role, requirements, and responsibilities..."></textarea>
+                        <div class="form-text">Include key skills, experience requirements, and job details.</div>
+                    </div>
+                    <hr class="job-divider">
+                `;
+                
+                // Add remove functionality
+                const removeBtn = newEntry.querySelector('.remove-job');
+                removeBtn.addEventListener('click', function(e){
+                    e.preventDefault();
+                    newEntry.remove();
+                    jobCount--;
+                    updateRemoveButtons();
+                    if(jobCount < maxJobs){
+                        addJobBtn.disabled = false;
+                    }
+                });
+                
+                jobsContainer.appendChild(newEntry);
+                updateRemoveButtons();
+                
+                if(jobCount >= maxJobs){
+                    addJobBtn.disabled = true;
+                }
+            }
+            
+            // Add job button listener
+            addJobBtn.addEventListener('click', function(e){
+                e.preventDefault();
+                addJobEntry();
+            });
+            
+            // Remove job listeners for existing entries
+            document.querySelectorAll('.remove-job').forEach(btn => {
+                btn.addEventListener('click', function(e){
+                    e.preventDefault();
+                    this.closest('.job-entry').remove();
+                    jobCount--;
+                    updateRemoveButtons();
+                    if(jobCount < maxJobs){
+                        addJobBtn.disabled = false;
+                    }
+                });
+            });
+            
+            updateRemoveButtons();
+        })();
+
+        // Application filtering by match score
+        (function(){
+            const scoreFilter = document.getElementById('scoreFilter');
+            const minScore = document.getElementById('minScore');
+            const maxScore = document.getElementById('maxScore');
+            const resetFilter = document.getElementById('resetFilter');
+            const applicationsTable = document.getElementById('applicationsTableBody');
+            const applicationRows = document.querySelectorAll('.application-row');
+            const noResults = document.getElementById('noResults');
+            const filterStats = document.getElementById('filterStats');
+            const table = document.getElementById('applicationsTable');
+            
+            function applyFilters() {
+                const scoreFilterValue = scoreFilter.value;
+                const minScoreValue = parseInt(minScore.value) || 0;
+                const maxScoreValue = parseInt(maxScore.value) || 100;
+                
+                let visibleCount = 0;
+                
+                applicationRows.forEach(row => {
+                    const score = parseFloat(row.dataset.score);
+                    let shouldShow = true;
+                    
+                    // Apply score range filter
+                    if (scoreFilterValue === 'high') {
+                        shouldShow = score >= 80;
+                    } else if (scoreFilterValue === 'medium') {
+                        shouldShow = score >= 60 && score < 80;
+                    } else if (scoreFilterValue === 'low') {
+                        shouldShow = score < 60;
+                    }
+                    
+                    // Apply min/max filters
+                    shouldShow = shouldShow && score >= minScoreValue && score <= maxScoreValue;
+                    
+                    if (shouldShow) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // Show/hide table and no results message
+                if (visibleCount === 0) {
+                    table.style.display = 'none';
+                    noResults.style.display = 'block';
+                } else {
+                    table.style.display = '';
+                    noResults.style.display = 'none';
+                }
+                
+                // Update filter stats
+                filterStats.textContent = `Showing ${visibleCount} of ${applicationRows.length} applications`;
+            }
+            
+            // Event listeners
+            if (scoreFilter) {
+                scoreFilter.addEventListener('change', applyFilters);
+            }
+            if (minScore) {
+                minScore.addEventListener('input', applyFilters);
+            }
+            if (maxScore) {
+                maxScore.addEventListener('input', applyFilters);
+            }
+            if (resetFilter) {
+                resetFilter.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    scoreFilter.value = '';
+                    minScore.value = '';
+                    maxScore.value = '';
+                    applyFilters();
+                });
+            }
+            
+            // Initialize filter stats
+            filterStats.textContent = `Showing ${applicationRows.length} of ${applicationRows.length} applications`;
+        })();
+    </script>
 </body>
 </html>

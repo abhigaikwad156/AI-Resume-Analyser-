@@ -6,21 +6,26 @@
     <title>Candidate Dashboard - AI Resume Analyzer</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='dark-mode.css') }}" rel="stylesheet">
     <style>
+        /* Light Mode Default Styles */
         body {
             background-color: #f8f9fa;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+        
         .navbar-custom {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
+        
         .dashboard-header {
             background: white;
             padding: 2rem 0;
             margin-bottom: 2rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
+        
         .welcome-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -28,15 +33,19 @@
             border-radius: 15px;
             margin-bottom: 2rem;
         }
+        
         .card-custom {
             border: none;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease;
+            background: white;
         }
+        
         .card-custom:hover {
             transform: translateY(-2px);
         }
+        
         .job-card {
             background: white;
             border-radius: 10px;
@@ -44,45 +53,110 @@
             margin-bottom: 1rem;
             border-left: 4px solid #667eea;
         }
+        
         .btn-primary-custom {
             background: linear-gradient(45deg, #667eea, #764ba2);
             border: none;
             border-radius: 25px;
             padding: 10px 25px;
             font-weight: 600;
+            color: white;
         }
+        
         .btn-primary-custom:hover {
             background: linear-gradient(45deg, #764ba2, #667eea);
             transform: scale(1.05);
+            color: white;
         }
+        
         .table-custom {
             background: white;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
+        
         .table-custom thead {
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
         }
+        
         .score-badge {
             padding: 5px 10px;
             border-radius: 20px;
             font-weight: 600;
             font-size: 0.9rem;
         }
+        
         .score-high { background-color: #28a745; color: white; }
         .score-medium { background-color: #ffc107; color: black; }
         .score-low { background-color: #dc3545; color: white; }
+        
         .empty-state {
             text-align: center;
             padding: 3rem;
             color: #6c757d;
         }
+        
         .empty-state i {
             font-size: 4rem;
             margin-bottom: 1rem;
             opacity: 0.5;
+        }
+        
+        .recommendation-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .recommendation-item:hover {
+            background: #e9ecef;
+        }
+        
+        .recommendation-item.high { border-left-color: #dc3545; }
+        .recommendation-item.medium { border-left-color: #ffc107; }
+        .recommendation-item.low { border-left-color: #28a745; }
+        
+        .recommendation-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+        
+        .recommendation-desc {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .priority-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+        
+        .priority-high { background-color: #f8d7da; color: #721c24; }
+        .priority-medium { background-color: #fff3cd; color: #856404; }
+        .priority-low { background-color: #d4edda; color: #155724; }
+        
+        .recommendations-modal .modal-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+        }
+        
+        .recommendations-modal .btn-close {
+            filter: invert(1);
         }
     </style>
 </head>
@@ -96,6 +170,9 @@
                 <span class="navbar-text text-white me-3">
                     Welcome, <strong>{{ candidate }}</strong>
                 </span>
+                <button class="dark-mode-toggle me-2" id="darkModeBtn">
+                    <i class="fas fa-moon me-2"></i><span id="themeText">Dark</span>
+                </button>
                 <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
                     <i class="fas fa-sign-out-alt me-1"></i>Logout
                 </a>
@@ -133,14 +210,26 @@
                         {% if jobs %}
                             <form method="POST" action="{{ url_for('candidate_apply') }}" enctype="multipart/form-data">
                                 <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <label for="jobSearch" class="form-label fw-bold">
+                                            <i class="fas fa-search me-2"></i>Search Jobs
+                                        </label>
+                                        <input type="text" class="form-control" id="jobSearch" placeholder="Search by job title, company, or keywords..." 
+                                            style="border-radius: 8px; padding: 10px 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                        <small class="text-muted">Search across {{ jobs|length }} available positions</small>
+                                    </div>
                                     <div class="col-md-6">
                                         <label for="jobSelect" class="form-label fw-bold">Select a Job</label>
                                         <select class="form-select" id="jobSelect" name="job_id" required>
                                             <option value="">Choose a job...</option>
                                             {% for job in jobs %}
-                                                <option value="{{ job.id }}">{{ job.job_title }} — {{ job.employer_name }}</option>
+                                                <option value="{{ job.id }}" data-desc="{{ job.job_desc|e }}" data-title="{{ job.job_title|e }}" data-employer="{{ job.employer_name|e }}">{{ job.job_title }} — {{ job.employer_name }}</option>
                                             {% endfor %}
                                         </select>
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        <label class="form-label fw-bold">Job Description</label>
+                                        <div id="jobDescriptionPanel" class="p-3" style="background:#fff;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.06);min-height:60px;color:#333;">Select a job to view its description.</div>
                                     </div>
                                     <div class="col-md-6">
                                         <label for="resumeUpload" class="form-label fw-bold">Upload Your Resume</label>
@@ -204,8 +293,9 @@
                                 <tr>
                                     <th><i class="fas fa-building me-1"></i>Job Title</th>
                                     <th><i class="fas fa-percentage me-1"></i>Match Score</th>
-                                    <th><i class="fas fa-tools me-1"></i>Missing Skills</th>
+                                    <th><i class="fas fa-lightbulb me-1"></i>Recommendations</th>
                                     <th><i class="fas fa-calendar me-1"></i>Applied Date</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -218,13 +308,24 @@
                                             </span>
                                         </td>
                                         <td>
-                                            {% if app.missing_skills %}
-                                                <small class="text-muted">{{ app.missing_skills }}</small>
+                                            {% if app.get('recommendations') %}
+                                                <span class="badge bg-info">{{ app.recommendations|length }} Tips</span>
                                             {% else %}
-                                                <span class="badge bg-success">Complete Match</span>
+                                                <span class="badge bg-secondary">No recommendations</span>
                                             {% endif %}
                                         </td>
-                                        <td>{{ app.created_at }}</td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ app.created_at[:10] if app.created_at else 'N/A' }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            {% if app.get('recommendations') %}
+                                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#recommendationModal{{ loop.index }}">
+                                                    <i class="fas fa-eye me-1"></i>View
+                                                </button>
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -241,6 +342,120 @@
         </div>
     </div>
 
+    <!-- Recommendation Modals -->
+    {% for app in applications %}
+        {% if app.get('recommendations') %}
+        <div class="modal fade recommendations-modal" id="recommendationModal{{ loop.index }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">
+                                <i class="fas fa-lightbulb me-2"></i>AI Recommendations
+                            </h5>
+                            <small style="color: rgba(255,255,255,0.8);">{{ app.job_title }} — Match Score: {{ app.score }}%</small>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Here are personalized recommendations to improve your resume and match score for this position:
+                        </p>
+                        <div class="recommendations-list">
+                            {% for rec in app.recommendations %}
+                            <div class="recommendation-item {{ rec.priority }}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+
+                                        <div class="recommendation-desc">
+                                            {{ rec.description }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='dark-mode.js') }}"></script>
+    <script>
+        (function(){
+            const jobSelect = document.getElementById('jobSelect');
+            const jobSearch = document.getElementById('jobSearch');
+            const descPanel = document.getElementById('jobDescriptionPanel');
+            
+            // Store original options
+            const allOptions = Array.from(jobSelect.options).slice(1); // exclude "Choose a job"
+            const defaultOption = jobSelect.options[0];
+            
+            function updateDesc(){
+                const opt = jobSelect.options[jobSelect.selectedIndex];
+                if(opt && opt.dataset && opt.dataset.desc){
+                    descPanel.textContent = opt.dataset.desc || 'No description provided.';
+                } else {
+                    descPanel.textContent = 'Select a job to view its description.';
+                }
+            }
+            
+            function filterJobs(){
+                const searchTerm = (jobSearch.value || '').toLowerCase().trim();
+                
+                // Clear current options except placeholder
+                while(jobSelect.options.length > 1){
+                    jobSelect.remove(1);
+                }
+                
+                if(!searchTerm){
+                    // Show all jobs if search is empty
+                    allOptions.forEach(opt => {
+                        jobSelect.appendChild(opt.cloneNode(true));
+                    });
+                } else {
+                    // Filter jobs by search term
+                    const filtered = allOptions.filter(opt => {
+                        const title = (opt.dataset.title || '').toLowerCase();
+                        const employer = (opt.dataset.employer || '').toLowerCase();
+                        const desc = (opt.dataset.desc || '').toLowerCase();
+                        return title.includes(searchTerm) || employer.includes(searchTerm) || desc.includes(searchTerm);
+                    });
+                    
+                    if(filtered.length > 0){
+                        filtered.forEach(opt => {
+                            jobSelect.appendChild(opt.cloneNode(true));
+                        });
+                    } else {
+                        const noResults = document.createElement('option');
+                        noResults.text = 'No jobs match your search';
+                        noResults.disabled = true;
+                        jobSelect.appendChild(noResults);
+                    }
+                }
+                
+                // Reset selection and description
+                jobSelect.value = '';
+                descPanel.textContent = 'Select a job to view its description.';
+            }
+            
+            // Event listeners
+            if(jobSelect){
+                jobSelect.addEventListener('change', updateDesc);
+            }
+            
+            if(jobSearch){
+                jobSearch.addEventListener('input', filterJobs);
+                jobSearch.addEventListener('keyup', filterJobs);
+            }
+        })();
+    </script>
 </body>
 </html>

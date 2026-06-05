@@ -6,78 +6,243 @@
     <title>Candidate Sign Up - AI Resume Analyzer</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='dark-mode.css') }}" rel="stylesheet">
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(45deg, #28a745, #20c997);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.dark-mode {
+            --primary-gradient: linear-gradient(135deg, #0f172a, #1e293b);
+            --glass-bg: var(--hero-bg);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            transition: var(--transition);
         }
+
         .register-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 3rem;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            max-width: 500px;
+            background: var(--glass-bg);
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            max-width: 480px;
             width: 100%;
+            position: relative;
+            overflow: hidden;
+            animation: slideIn 0.6s ease-out;
         }
+
+        .register-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--secondary-gradient);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
         .register-header {
             text-align: center;
-            margin-bottom: 2rem;
-        }
-        .register-icon {
-            font-size: 4rem;
-            color: #667eea;
-            margin-bottom: 1rem;
-        }
-        .register-title {
-            color: #333;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        .register-subtitle {
-            color: #666;
-            font-size: 1rem;
-        }
-        .form-floating > label {
-            color: #666;
-        }
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        .btn-register {
-            background: linear-gradient(45deg, #28a745, #20c997);
-            border: none;
-            border-radius: 25px;
-            padding: 12px 30px;
-            font-weight: 600;
-            font-size: 1rem;
-            width: 100%;
-            margin-top: 1rem;
-            transition: all 0.3s ease;
-        }
-        .btn-register:hover {
-            background: linear-gradient(45deg, #20c997, #28a745);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
-        }
-        .password-strength {
-            font-size: 0.8rem;
-            margin-top: 0.25rem;
-        }
-        .password-strength.weak { color: #dc3545; }
-        .password-strength.medium { color: #ffc107; }
-        .password-strength.strong { color: #28a745; }
-        .divider {
-            text-align: center;
-            margin: 2rem 0;
+            margin-bottom: 2.5rem;
             position: relative;
         }
+
+        .register-icon {
+            font-size: 4rem;
+            background: var(--secondary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+            animation: bounceIn 0.8s ease-out;
+            display: inline-block;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .register-title {
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.025em;
+        }
+
+        .register-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        .form-floating {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-floating > .form-control {
+            border: 2px solid var(--input-border);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            font-size: 1rem;
+            background: var(--input-bg);
+            color: var(--input-text);
+            transition: var(--transition);
+            height: calc(3.5rem + 2px);
+        }
+
+        .form-floating > .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+            background: var(--input-bg);
+            transform: translateY(-1px);
+        }
+
+        .form-floating > .form-control:focus-visible {
+            outline: none;
+        }
+
+        .form-floating > label {
+            color: var(--label-text);
+            font-weight: 500;
+            padding: 1rem 1.25rem;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+
+        .form-floating > .form-control:focus ~ label,
+        .form-floating > .form-control:not(:placeholder-shown) ~ label {
+            color: #667eea;
+            transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+        }
+
+        .form-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            font-weight: 400;
+        }
+
+        .password-strength {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            transition: var(--transition);
+        }
+
+        .password-strength.weak {
+            color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        .password-strength.medium {
+            color: #ffc107;
+            background: rgba(255, 193, 7, 0.1);
+        }
+
+        .password-strength.strong {
+            color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+
+        .btn-register {
+            background: var(--secondary-gradient);
+            border: none;
+            border-radius: 50px;
+            padding: 14px 32px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            width: 100%;
+            margin-top: 1.5rem;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-register::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-register:hover::before {
+            left: 100%;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-register:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-register:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 2.5rem 0 2rem;
+            position: relative;
+        }
+
         .divider::before {
             content: '';
             position: absolute;
@@ -85,31 +250,128 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: #ddd;
+            background: var(--border-color);
         }
+
         .divider span {
-            background: white;
-            padding: 0 1rem;
-            color: #666;
-            font-size: 0.9rem;
+            background: var(--glass-bg);
+            padding: 0 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 500;
         }
+
         .link-primary {
-            color: #667eea !important;
+            color: var(--link-color) !important;
             text-decoration: none;
             font-weight: 600;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
+
         .link-primary:hover {
-            color: #764ba2 !important;
+            color: var(--link-hover) !important;
+            transform: translateX(3px);
         }
+
         .alert-custom {
-            border-radius: 10px;
+            border-radius: 12px;
             border: none;
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            border-left: 4px solid #dc3545;
+            animation: shake 0.5s ease-in-out;
         }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
         .terms-text {
             font-size: 0.85rem;
-            color: #666;
+            color: var(--text-secondary);
             text-align: center;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
+            line-height: 1.5;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 576px) {
+            .register-container {
+                padding: 2rem 1.5rem;
+                margin: 10px;
+                border-radius: 20px;
+            }
+
+            .register-title {
+                font-size: 1.75rem;
+            }
+
+            .register-icon {
+                font-size: 3rem;
+            }
+
+            .btn-register {
+                padding: 12px 24px;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .register-container {
+                padding: 1.5rem 1rem;
+            }
+
+            .register-header {
+                margin-bottom: 2rem;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Focus visible for keyboard navigation */
+        .btn-register:focus-visible,
+        .form-control:focus-visible,
+        .link-primary:focus-visible {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+
+        /* Loading state */
+        .btn-register.loading {
+            pointer-events: none;
+        }
+
+        .btn-register.loading::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            margin-left: 8px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -135,9 +397,12 @@
                     <form method="POST" id="registerForm">
                         <div class="form-floating mb-3">
                             <input type="text" class="form-control" id="username" name="username"
-                                   placeholder="Choose a username" required minlength="3">
+                                   placeholder="Choose a username" required minlength="3" maxlength="20">
                             <label for="username"><i class="fas fa-user me-2"></i>Username</label>
-                            <div class="form-text">Choose a unique username (minimum 3 characters)</div>
+                            <div id="usernameStatus" class="form-text" style="display: none;"></div>
+                            <div id="usernameRules" class="form-text mt-2" style="font-size: 0.8rem;">
+                                <strong>Rules:</strong> 3-20 characters, letters, numbers, and underscores only. No spaces.
+                            </div>
                         </div>
 
                         <div class="form-floating mb-3">
@@ -187,35 +452,47 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Password strength checker
+        // Enhanced password strength checker with visual feedback
         document.getElementById('password').addEventListener('input', function() {
             const password = this.value;
             const strengthIndicator = document.getElementById('passwordStrength');
 
             if (password.length === 0) {
                 strengthIndicator.textContent = '';
+                strengthIndicator.className = 'password-strength';
                 return;
             }
 
             let strength = 0;
-            if (password.length >= 6) strength++;
-            if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
-            if (password.match(/\d/)) strength++;
-            if (password.match(/[^a-zA-Z\d]/)) strength++;
+            const checks = [
+                password.length >= 6,
+                password.match(/[a-z]/) && password.match(/[A-Z]/),
+                password.match(/\d/),
+                password.match(/[^a-zA-Z\d]/)
+            ];
 
-            if (strength <= 1) {
-                strengthIndicator.textContent = 'Weak password';
-                strengthIndicator.className = 'password-strength weak';
-            } else if (strength <= 2) {
-                strengthIndicator.textContent = 'Medium strength';
-                strengthIndicator.className = 'password-strength medium';
-            } else {
-                strengthIndicator.textContent = 'Strong password';
-                strengthIndicator.className = 'password-strength strong';
-            }
+            checks.forEach(check => { if (check) strength++; });
+
+            const strengthLevels = [
+                { text: 'Very Weak', class: 'weak', color: '#dc3545' },
+                { text: 'Weak', class: 'weak', color: '#dc3545' },
+                { text: 'Medium', class: 'medium', color: '#ffc107' },
+                { text: 'Strong', class: 'strong', color: '#28a745' },
+                { text: 'Very Strong', class: 'strong', color: '#28a745' }
+            ];
+
+            const level = strengthLevels[Math.min(strength, 4)];
+            strengthIndicator.textContent = level.text;
+            strengthIndicator.className = `password-strength ${level.class}`;
+
+            // Animate the indicator
+            strengthIndicator.style.animation = 'none';
+            setTimeout(() => {
+                strengthIndicator.style.animation = 'fadeIn 0.3s ease-in-out';
+            }, 10);
         });
 
-        // Password confirmation checker
+        // Enhanced password confirmation checker
         document.getElementById('confirmPassword').addEventListener('input', function() {
             const password = document.getElementById('password').value;
             const confirmPassword = this.value;
@@ -224,31 +501,192 @@
             if (confirmPassword.length > 0) {
                 if (password === confirmPassword) {
                     matchIndicator.style.display = 'none';
+                    this.style.borderColor = '#28a745';
+                    this.style.boxShadow = '0 0 0 2px rgba(40, 167, 69, 0.15)';
                 } else {
                     matchIndicator.style.display = 'block';
+                    this.style.borderColor = '#dc3545';
+                    this.style.boxShadow = '0 0 0 2px rgba(220, 53, 69, 0.15)';
                 }
             } else {
                 matchIndicator.style.display = 'none';
+                this.style.borderColor = '';
+                this.style.boxShadow = '';
             }
         });
 
-        // Form validation
+        // Enhanced form validation with loading state
         document.getElementById('registerForm').addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            const username = document.getElementById('username').value;
+            const submitBtn = document.getElementById('registerBtn');
 
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                alert('Passwords do not match. Please try again.');
-                return false;
+            // Reset previous validation states
+            document.querySelectorAll('.form-control').forEach(input => {
+                input.style.borderColor = '';
+                input.style.boxShadow = '';
+            });
+
+            let isValid = true;
+
+            // Username validation
+            if (username.length < 3) {
+                showValidationError('username', 'Username must be at least 3 characters long');
+                isValid = false;
             }
 
+            // Password validation
             if (password.length < 6) {
+                showValidationError('password', 'Password must be at least 6 characters long');
+                isValid = false;
+            }
+
+            // Password confirmation
+            if (password !== confirmPassword) {
+                showValidationError('confirmPassword', 'Passwords do not match');
+                isValid = false;
+            }
+
+            if (!isValid) {
                 e.preventDefault();
-                alert('Password must be at least 6 characters long.');
                 return false;
             }
+
+            // Show loading state
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Account...';
+
+            // Allow form to submit
         });
+
+        function showValidationError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            field.style.borderColor = '#dc3545';
+            field.style.boxShadow = '0 0 0 2px rgba(220, 53, 69, 0.15)';
+
+            // Shake animation
+            field.style.animation = 'shake 0.5s ease-in-out';
+
+            // Show alert if not already shown
+            if (!document.querySelector('.alert-validation')) {
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-danger alert-custom alert-validation';
+                alert.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${message}`;
+                document.querySelector('.register-header').insertAdjacentElement('afterend', alert);
+
+                setTimeout(() => {
+                    alert.remove();
+                }, 5000);
+            }
+        }
+
+        // Add input focus effects
+        document.querySelectorAll('.form-control').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.style.transform = 'translateY(-2px)';
+            });
+
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = '';
+            });
+        });
+
+        // Add smooth scrolling for links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add enter key support for form navigation
+        document.querySelectorAll('.form-control').forEach((input, index, inputs) => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && index < inputs.length - 1) {
+                    e.preventDefault();
+                    inputs[index + 1].focus();
+                }
+            });
+        });
+
+        // Real-time username validation
+        let usernameCheckTimeout;
+        const usernameInput = document.getElementById('username');
+        const usernameStatus = document.getElementById('usernameStatus');
+        const registerBtn = document.getElementById('registerBtn');
+
+        usernameInput.addEventListener('input', function() {
+            clearTimeout(usernameCheckTimeout);
+            const username = this.value.trim().toLowerCase();
+            
+            // Clear status if empty
+            if (username.length === 0) {
+                usernameStatus.style.display = 'none';
+                registerBtn.disabled = false;
+                return;
+            }
+
+            // Debounce the check (wait 500ms after user stops typing)
+            usernameCheckTimeout = setTimeout(() => {
+                // Check format locally first
+                const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+                if (!usernameRegex.test(username)) {
+                    showUsernameStatus(false, '❌ Invalid format: only letters, numbers, underscores (3-20 chars)', 'text-danger');
+                    registerBtn.disabled = true;
+                    return;
+                }
+
+                // Check availability via AJAX
+                fetch('/api/check-username', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        type: 'candidate'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.available) {
+                        showUsernameStatus(true, '✅ ' + data.message, 'text-success');
+                        registerBtn.disabled = false;
+                    } else {
+                        showUsernameStatus(false, '❌ ' + data.message, 'text-danger');
+                        registerBtn.disabled = true;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking username:', error);
+                    showUsernameStatus(false, 'Error checking availability', 'text-warning');
+                });
+            }, 500);
+        });
+
+        function showUsernameStatus(isValid, message, className) {
+            usernameStatus.textContent = message;
+            usernameStatus.className = 'form-text ' + className;
+            usernameStatus.style.display = 'block';
+            
+            // Update input border color
+            if (isValid) {
+                usernameInput.style.borderColor = '#28a745';
+                usernameInput.style.boxShadow = '0 0 0 2px rgba(40, 167, 69, 0.15)';
+            } else {
+                usernameInput.style.borderColor = '#dc3545';
+                usernameInput.style.boxShadow = '0 0 0 2px rgba(220, 53, 69, 0.15)';
+            }
+        }
     </script>
+    <script src="{{ url_for('static', filename='dark-mode.js') }}"></script>
 </body>
 </html>
